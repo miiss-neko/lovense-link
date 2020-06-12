@@ -1,0 +1,20 @@
+{
+  "name": "lovense-link",
+  "version": "1.0.4",
+  "description": "A simple CLI to get control link for you're lovense toys.",
+  "main": "lovense.js",
+  "author": "Miiss Neko",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "better-opn": "^2.0.0",
+    "fs": "0.0.1-security",
+    "os": "^0.1.1",
+    "path": "^0.12.7",
+    "prompts": "^2.3.2",
+    "terminal-kit": "^1.35.3"
+  },
+  "bin": {
+    "lovense-link": "./lovense.js"
+  }
+}
