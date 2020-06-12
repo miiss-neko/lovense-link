@@ -5,6 +5,7 @@
   "main": "lovense.js",
   "author": "Miiss Neko",
   "license": "MIT",
+  "files": ["config.json"],
   "dependencies": {
     "axios": "^0.19.2",
     "better-opn": "^2.0.0",
