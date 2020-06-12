@@ -31,7 +31,9 @@ async function setToken() {
                 }
             });
 
-            return data.code === 0;
+            if (data.code === 502) return `Please go to: https://www.lovense.com/user/developer/info - My Application > API LAN > Enable API LAN and set a random callback URL.`;
+
+            return data.code === 0 ? true : `Looks like you're token is invalid.`;
         }
     });
 
