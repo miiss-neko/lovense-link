@@ -1,6 +1,6 @@
 {
   "name": "lovense-link",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A simple CLI to get control link for you're lovense toys.",
   "main": "lovense.js",
   "author": "Miiss Neko",
