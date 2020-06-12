@@ -189,7 +189,7 @@ async function checkControlLink() {
     const { url } = await prompts({
         type: 'text',
         name: 'url',
-        message: `What's is you're lovense URL?`,
+        message: `What's URL do you want to check?`,
         validate: async (value) => {
             const matchLink = value.match(/(https|http):\/\/(apps|api2)\.lovense\.com\/c\/(.*)/gi);
 
@@ -234,12 +234,6 @@ async function checkControlLink() {
 
                         start();
                     })
-
-                // status: queue, controlling, unauthorized
-                // /app/ws2/play/b42728a03f2b4149ba3e851ad9c57305
             })
     }
-
-    // https://apps.lovense.com/c/pdup
-    // https://apps.lovense.com/c/2zo9
 }
