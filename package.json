@@ -1,11 +1,13 @@
 {
   "name": "lovense-link",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A simple CLI to get control link for you're lovense toys.",
   "main": "lovense.js",
   "author": "Miiss Neko",
   "license": "MIT",
-  "files": ["config.json"],
+  "files": [
+    "config.json"
+  ],
   "dependencies": {
     "axios": "^0.19.2",
     "better-opn": "^2.0.0",
