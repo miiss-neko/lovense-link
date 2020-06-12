@@ -54,17 +54,17 @@ async function start() {
         choices: [
             {
                 title: 'Scan QR Code',
-                description: `Open QR Code to scan in you're default browser.`,
+                description: `Scran a QR code to register you're lovense connect app.`,
                 value: 'qrcode',
             },
             {
                 title: 'Get Control Link',
-                description: `Display the list of you're toys and get a control link.`,
+                description: `Display a list of you're toys and get a control link for one of them.`,
                 value: 'link',
             },
             {
                 title: 'Check Control Link',
-                description: `Check if a control link is still available.`,
+                description: `Check if a control link status.`,
                 value: 'check-link',
             },
         ],
