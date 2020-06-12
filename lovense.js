@@ -61,7 +61,12 @@ async function start() {
                 title: 'Get Control Link',
                 description: `Display the list of you're toys and get a control link.`,
                 value: 'link',
-            }
+            },
+            {
+                title: 'Check Control Link',
+                description: `Check if a control link is still available.`,
+                value: 'check-link',
+            },
         ],
     });
 
@@ -72,8 +77,11 @@ async function start() {
         case 'link':
             getControlLink();
             break;
+        case 'check-link':
+            checkControlLink();
+            break;
         default:
-            term.red('Aborted!\n');
+            term.red('Program stopped, See you next time!\n');
     }
 }
 
@@ -107,12 +115,12 @@ async function scanQrCode() {
         }).then(({ data }) => {
             if (data.code === 0) {
                 if (action === 'browser') opn(data.message);
-                else term('QR Code link: ').yellow(data.message).black('\n');
+                else term('\nQR Code link: ').yellow(data.message).black('\n\n');
 
                 askCodeScanned();
             }
         });
-    else term.red('Aborted!\n');
+    else start();
 }
 
 async function askCodeScanned() {
@@ -124,7 +132,7 @@ async function askCodeScanned() {
     });
 
     if (scanned) getControlLink();
-    else term.red('Aborted!').black('\n');
+    else start();
 }
 
 function getControlLink() {
@@ -159,6 +167,7 @@ function getControlLink() {
 
             if (!toy) {
                 term.yellow('Canceled!').black('\n');
+                start();
             } else {
                 axios.post('https://apps.lovense.com/developer/v2/createSession', {}, {
                     params: {
@@ -168,9 +177,69 @@ function getControlLink() {
                         toyType: toy.name,
                     }
                 }).then(({ data }) => {
-                    term(`You're control link: `).yellow(data.data.controlLink).black('\n');
+                    term(`\nYou're control link: `).yellow(data.data.controlLink).black('\n\n');
+                    start();
                 })
             }
         }
     })
+}
+
+async function checkControlLink() {
+    const { url } = await prompts({
+        type: 'text',
+        name: 'url',
+        message: `What's is you're lovense URL?`,
+        validate: async (value) => {
+            const matchLink = value.match(/(https|http):\/\/(apps|api2)\.lovense\.com\/c\/(.*)/gi);
+
+            if (!matchLink) return 'Invalid URI';
+
+            const { data } = await axios.get(value);
+
+            if (data.code && data.code === 404) return 'Invalid URI';
+
+            const sID = data.match(/\/app\/ws2\/play\/([A-z0-9]*)/)[1];
+
+            if (!sID) return `Can't find sID`;
+
+            return true;
+        },
+    });
+
+    if (!url) start();
+    else {
+        axios.get(url)
+            .then(({ data }) => {
+                const sID = data.match(/\/app\/ws2\/play\/([A-z0-9]*)/)[1];
+
+                axios.post(`https://apps.lovense.com/developer/v2/loading/${sID}`)
+                    .then(({ data }) => {
+                        const status = data.data.status;
+
+                        switch (status) {
+                            case 'queue':
+                                term.cyan(`\nYou're URL is still waiting for someone to take control.`).black('\n\n');
+                                break;
+                            case 'controlling':
+                                term.cyan(`\nSomeone is in control of the toy.`).black('\n\n');
+                                break;
+                            case 'unauthorized':
+                                term.yellow(`\nYou can't use this link anymore.`).black('\n\n');
+                                break;
+                            default:
+                                term.yellow(`\nUnknown status ${status}, you can report this status on our github.`).black('\n\n');
+                                break;
+                        }
+
+                        start();
+                    })
+
+                // status: queue, controlling, unauthorized
+                // /app/ws2/play/b42728a03f2b4149ba3e851ad9c57305
+            })
+    }
+
+    // https://apps.lovense.com/c/pdup
+    // https://apps.lovense.com/c/2zo9
 }
