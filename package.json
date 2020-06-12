@@ -8,6 +8,10 @@
   "files": [
     "config.json"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/miiss-neko/lovense-link"
+  },
   "dependencies": {
     "axios": "^0.19.2",
     "better-opn": "^2.0.0",
