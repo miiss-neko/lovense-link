@@ -7,47 +7,41 @@ const os = require('os');
 const path = require('path');
 const term = require('terminal-kit').terminal;
 const opn = require('better-opn');
+const lovenseRequests = require('./utils/lovense-requests.js');
 
 const config_file = path.join(path.resolve(__dirname), 'config.json');
-let config = { token: undefined, uniqueID: `${os.hostname()}-${os.release()}` };
+let config = {token: undefined, uniqueID: `${os.hostname()}-${os.release()}`};
 
 if (fs.existsSync(config_file)) {
-    config = JSON.parse(fs.readFileSync(config_file, { encoding: 'utf8' }));
+    config = JSON.parse(fs.readFileSync(config_file, {encoding: 'utf8'}));
     start();
 } else setToken();
 
 async function setToken() {
-    const { token } = await prompts({
+    const {token} = await prompts({
         type: 'text',
         name: 'token',
         message: `What's you're lovense token?`,
         validate: async (value) => {
-            const { data } = await axios.post('https://api.lovense.com/api/lan/getQrCode', {}, {
-                params: {
-                    token: value,
-                    uid: config.uniqueID,
-                    uname: os.hostname(),
-                    utoken: config.uniqueID,
-                }
-            });
+            const {data} = await lovenseRequests.getQrCode(value, config.uniqueID);
 
             if (data.code === 502) return `Please go to: https://www.lovense.com/user/developer/info - My Application > API LAN > Enable API LAN and set a random callback URL.`;
 
             return data.code === 0 ? true : `Looks like you're token is invalid.`;
-        }
+        },
     });
 
     if (token) {
         config.token = token;
 
-        fs.writeFileSync(config_file, JSON.stringify(config), { encoding: 'utf8' });
+        fs.writeFileSync(config_file, JSON.stringify(config), {encoding: 'utf8'});
 
         scanQrCode();
     } else term.red('Aborted!\n');
 }
 
 async function start() {
-    const { action } = await prompts({
+    const {action} = await prompts({
         type: 'select',
         name: 'action',
         message: `What do you want to do?`,
@@ -66,6 +60,11 @@ async function start() {
                 title: 'Check Control Link',
                 description: `Check if a control link status.`,
                 value: 'check-link',
+            },
+            {
+                title: 'Quit',
+                description: `Quit the app.`,
+                value: 'quit',
             },
         ],
     });
@@ -86,7 +85,7 @@ async function start() {
 }
 
 async function scanQrCode() {
-    const { action } = await prompts({
+    const {action} = await prompts({
         type: 'select',
         name: 'action',
         message: `You now have to scan a QR Code, please choose how to open the link.`,
@@ -100,93 +99,79 @@ async function scanQrCode() {
                 title: 'Terminal',
                 description: 'Will display the link in terminal.',
                 value: 'terminal',
-            }
-        ]
+            },
+        ],
     });
 
-    if (action)
-        axios.post('https://api.lovense.com/api/lan/getQrCode', {}, {
-            params: {
-                token: config.token,
-                uid: config.uniqueID,
-                uname: os.hostname(),
-                utoken: config.uniqueID,
-            }
-        }).then(({ data }) => {
-            if (data.code === 0) {
-                if (action === 'browser') opn(data.message);
-                else term('\nQR Code link: ').yellow(data.message).black('\n\n');
+    if (action) {
+        const {data} = await lovenseRequests.getQrCode(config.token, config.uniqueID);
 
-                askCodeScanned();
-            }
-        });
-    else start();
+        if (data.code === 0) {
+            if (action === 'browser') opn(data.message);
+            else term('\nQR Code link: ').yellow(data.message).black('\n\n');
+
+            askCodeScanned();
+        }
+    } else start();
 }
 
 async function askCodeScanned() {
-    const { scanned } = await prompts({
+    const {scanned} = await prompts({
         type: 'confirm',
         name: 'scanned',
         message: 'Have you scanned the QR code?',
-        initial: true
+        initial: true,
     });
 
     if (scanned) getControlLink();
     else start();
 }
 
-function getControlLink() {
-    axios.post('https://apps.lovense.com/api/lan/command', {}, {
-        params: {
-            token: config.token,
-            uid: config.uniqueID,
-            command: 'GetToys',
-        }
-    }).then(async ({ data: { code, data: toys } }) => {
-        if ([407, 406].includes(code)) term.red("You're app is disconnected.\n").cyan(`Launch it then restart the script.\n`);
-        else if (!toys) term.yellow("You don't have any toys connected to you're Lovense Connect App.\n").cyan(`Are you sure you've scanned the QR code ?\n`);
-        else {
-            const toysList = Object.values(toys);
+async function getControlLink() {
+    const {data: {code, data: toys}} = await lovenseRequests.getToysList(config.token, config.uniqueID);
 
-            const { toy } = await prompts({
-                type: 'select',
-                name: 'toy',
-                message: `Which toy needs a link?`,
-                choices: toysList.sort((a, b) => a.status === b.status ? 0 : a.status < b.status ? 1 : -1).map(toy => ({
-                    title: `(${toy.status ? 'Online' : 'Offline'}) ${toy.name}`,
-                    description: toy.nickName,
-                    value: toy,
-                })).concat([
-                    {
-                        title: 'Cancel',
-                        description: 'Cancel and get no link.',
-                        value: false,
-                    }
-                ])
-            });
+    if ([407, 406].includes(code)) {
+        term.red("You're app is disconnected.\n");
+        start();
+    } else if (!toys) {
+        term.yellow("You don't have any toys connected to you're Lovense Connect App.\n").cyan(`Are you sure you've scanned the QR code ?\n`);
+        start();
+    } else {
+        const toysList = Object.values(toys);
 
-            if (!toy) {
-                term.yellow('Canceled!').black('\n');
-                start();
-            } else {
-                axios.post('https://apps.lovense.com/developer/v2/createSession', {}, {
-                    params: {
-                        token: config.token,
-                        customerid: config.uniqueID,
-                        toyId: toy.id,
-                        toyType: toy.name,
-                    }
-                }).then(({ data }) => {
-                    term(`\nYou're control link: `).yellow(data.data.controlLink).black('\n\n');
-                    start();
-                })
-            }
+        const {toy} = await prompts({
+            type: 'select',
+            name: 'toy',
+            message: `Which toy needs a link?`,
+            choices: toysList.sort((a, b) => a.status === b.status ? 0 : a.status < b.status ? 1 : -1).map(toy => ({
+                title: `(${toy.status ? 'Online' : 'Offline'}) ${toy.name}`,
+                description: toy.nickName,
+                value: toy,
+            })).concat([
+                {
+                    title: 'Cancel',
+                    description: 'Cancel and get no link.',
+                    value: false,
+                },
+            ]),
+        });
+
+        if (!toy) {
+            term.yellow('Canceled!').black('\n');
+            start();
+        } else {
+            const {data} = await lovenseRequests.getSessionLink(config.token, config.uniqueID, toy);
+
+            if (data.code === 0) term(`\nYou're control link: `).yellow(data.data.controlLink).black('\n\n');
+            else term.yellow(`Error getting you're control link`).black('\n\n');
+
+            start();
         }
-    })
+    }
 }
 
 async function checkControlLink() {
-    const { url } = await prompts({
+    const {url} = await prompts({
         type: 'text',
         name: 'url',
         message: `What's URL do you want to check?`,
@@ -195,7 +180,7 @@ async function checkControlLink() {
 
             if (!matchLink) return 'Invalid URI';
 
-            const { data } = await axios.get(value);
+            const {data} = await axios.get(value);
 
             if (data.code && data.code === 404) return 'Invalid URI';
 
@@ -210,30 +195,26 @@ async function checkControlLink() {
     if (!url) start();
     else {
         axios.get(url)
-            .then(({ data }) => {
+            .then(async ({data}) => {
                 const sID = data.match(/\/app\/ws2\/play\/([A-z0-9]*)/)[1];
+                const state = await lovenseRequests.getSessionState(sID);
 
-                axios.post(`https://apps.lovense.com/developer/v2/loading/${sID}`)
-                    .then(({ data }) => {
-                        const status = data.data.status;
+                switch (state) {
+                    case 'queue':
+                        term.cyan(`\nYou're URL is still waiting for someone to take control.`).black('\n\n');
+                        break;
+                    case 'controlling':
+                        term.cyan(`\nSomeone is in control of the toy.`).black('\n\n');
+                        break;
+                    case 'unauthorized':
+                        term.yellow(`\nYou can't use this link anymore.`).black('\n\n');
+                        break;
+                    default:
+                        term.yellow(`\nUnknown status ${state}, you can report this status on our github.`).black('\n\n');
+                        break;
+                }
 
-                        switch (status) {
-                            case 'queue':
-                                term.cyan(`\nYou're URL is still waiting for someone to take control.`).black('\n\n');
-                                break;
-                            case 'controlling':
-                                term.cyan(`\nSomeone is in control of the toy.`).black('\n\n');
-                                break;
-                            case 'unauthorized':
-                                term.yellow(`\nYou can't use this link anymore.`).black('\n\n');
-                                break;
-                            default:
-                                term.yellow(`\nUnknown status ${status}, you can report this status on our github.`).black('\n\n');
-                                break;
-                        }
-
-                        start();
-                    })
+                start();
             })
     }
 }
