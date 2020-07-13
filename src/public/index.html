@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lovense Link - Web Interface</title>
+
+    <link rel="icon" href="./img/lovense-logo.png" type="image/png">
+
+    <link rel="stylesheet" href="./css/bootstrap.css">
+    <script src="./js/bootstrap.bundle.js"></script>
+    <script src="./js/jquery.js"></script>
+</head>
+<body>
+<div class="container text-center pt-4">
+    <button id="close-app" type="button" class="btn btn-danger mx-auto">Close the interface</button>
+    <ul class="nav nav-pills justify-content-center mt-5" id="myTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" id="home-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home"
+               aria-selected="true">Scan QR Code</a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link active" id="profile-tab" data-toggle="tab" href="#profile" role="tab"
+               aria-controls="profile"
+               aria-selected="false">Get Control Link</a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" id="contact-tab" data-toggle="tab" href="#contact" role="tab" aria-controls="contact"
+               aria-selected="false">Check Control Link</a>
+        </li>
+    </ul>
+    <div class="tab-content text-center mt-5" id="myTabContent">
+        <div class="tab-pane fade" id="home" role="tabpanel" aria-labelledby="home-tab">
+            <img id="qr-code" src="" alt="Lovense QR Code">
+        </div>
+        <div class="tab-pane fade show active" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+            <select id="toys-select" class="d-inline-block form-select" style="max-width: 400px"></select>
+            <br>
+            <button id="get-share-link" type="button" class="btn btn-primary mt-3" disabled>Get Control Link</button>
+        </div>
+        <div class="tab-pane fade" id="contact" role="tabpanel" aria-labelledby="contact-tab">
+            <input id="share-link" class="form-control d-inline-block" type="text"
+                   placeholder="https://apps.lovense.com/c/xxxxxx" style="max-width: 400px;">
+            <br>
+            <button id="check-share-link" type="button" class="btn btn-primary mt-3" disabled>Get Control Link</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(function () {
+        $.get('/qr-code')
+            .then((data) => {
+                $('#qr-code').attr('src', data.url);
+            });
+
+        $.get('/toys')
+            .then((data) => {
+                const code = data.code;
+                const toys = data.data;
+
+                const toys_options = Object.values(toys).map(t => (`<option value="${t.id}">${t.name} (${t.nickName})</option>`)).join('');
+
+                $('#toys-select').html(`<option value="null" selected>Select a toy</option>${toys_options}`);
+            });
+
+        $('#toys-select').on('input', function () {
+            const selected_option = $(this).find('option:selected');
+            if (selected_option.val() === 'null')
+                $('#get-share-link').attr('disabled', true);
+            else
+                $('#get-share-link').attr('disabled', false);
+        });
+
+        $('#get-share-link').on('click', function () {
+            const selected_toy = $('#toys-select option:selected').val();
+            $.get(`/control-link?toy=${selected_toy}`)
+                .then((data) => {
+                    $('#profile .alert').remove();
+                    $('#profile').append(`<div class="alert alert-primary alert-dismissible mt-3" role="alert">
+                            <a href="${data.data.controlLink}" class="alert-link">${data.data.controlLink}</a>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>`);
+                });
+        });
+
+        $('#share-link').on('input', function () {
+            const share_link = $(this).val();
+            if (!share_link.match(/^(http|https):\/\/(apps|api2)\.lovense\.com\/c\/[A-z0-9]{1,6}$/gi))
+                $('#check-share-link').attr('disabled', true);
+            else
+                $('#check-share-link').attr('disabled', false);
+        });
+
+        $('#check-share-link').on('click', function () {
+            const share_link = $('#share-link').val();
+            $.get(`/control-link-check?link=${share_link}`)
+                .then((data) => {
+                    const state = data.state;
+
+                    let message = '';
+                    let alert_type = 'alert-primary';
+
+                    switch (state) {
+                        case 'queue':
+                            message = `You're URL is still waiting for someone to take control.`;
+                            break;
+                        case 'controlling':
+                            message = `\nSomeone is in control of the toy.`;
+                            break;
+                        case 'unauthorized':
+                            message = `\nYou can't use this link anymore.`;
+                            alert_type = 'alert-warning';
+                            break;
+                        default:
+                            message = `\nUnknown status ${state}, you can report this status on our github.`;
+                            alert_type = 'alert-danger';
+                    }
+
+                    $('#contact .alert').remove();
+                    $('#contact').append(`<div class="alert ${alert_type} alert-dismissible mt-3" role="alert">
+                            ${message}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>`);
+                });
+        });
+
+        $('#close-app').on('click', function () {
+            $.get('/close-interface')
+                .then(() => window.close());
+        });
+    });
+</script>
+</body>
+</html>

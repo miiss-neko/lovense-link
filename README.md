@@ -1,6 +1,8 @@
 # Lovense Link
 
-Let you retreive Control links from lovenses API
+Let you retrieve Control links from lovenses API
+
+Features CLI commands and a web Interface
 
 # Install
 ```
