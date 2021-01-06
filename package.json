@@ -13,7 +13,7 @@
     "url": "https://github.com/miiss-neko/lovense-link"
   },
   "dependencies": {
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "better-opn": "^2.0.0",
     "express": "^4.17.1",
     "fs": "0.0.1-security",
