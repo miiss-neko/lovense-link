@@ -4,7 +4,7 @@ const os = require('os');
 class LovenseRequests {
 
     async getQrCode(token, uid) {
-        return await axios.post('https://api.lovense.com/api/lan/getQrCode', {}, {
+        return await axios.post('https://api.lovense.com/api/lan/getQrCode', null, {
             params: {
                 token: token,
                 uid: uid,

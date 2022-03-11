@@ -149,7 +149,7 @@ async function checkControlLink() {
         name: 'url',
         message: `What's URL do you want to check?`,
         validate: async (value) => {
-            const matchLink = value.match(/(https|http):\/\/(apps|api2)\.lovense\.com\/c\/(.*)/gi);
+            const matchLink = value.match(/(https|http):\/\/(apps|api2|c)\.lovense\.com\/(c|v2)\/(.*)/gi);
 
             if (!matchLink) return 'Invalid URI';
 

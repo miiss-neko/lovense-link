@@ -39,7 +39,7 @@
         </div>
         <div class="tab-pane fade" id="contact" role="tabpanel" aria-labelledby="contact-tab">
             <input id="share-link" class="form-control d-inline-block" type="text"
-                   placeholder="https://apps.lovense.com/c/xxxxxx" style="max-width: 400px;">
+                   placeholder="https://c.lovense.com/v2/xxxxxx" style="max-width: 400px;">
             <br>
             <button id="check-share-link" type="button" class="btn btn-primary mt-3" disabled>Get Control Link</button>
         </div>
@@ -87,7 +87,7 @@
 
         $('#share-link').on('input', function () {
             const share_link = $(this).val();
-            if (!share_link.match(/^(http|https):\/\/(apps|api2)\.lovense\.com\/c\/[A-z0-9]{1,6}$/gi))
+            if (!share_link.match(/^(http|https):\/\/(apps|api2|c)\.lovense\.com\/(c|v2)\/[A-z0-9]{1,6}$/gi))
                 $('#check-share-link').attr('disabled', true);
             else
                 $('#check-share-link').attr('disabled', false);
@@ -95,10 +95,9 @@
 
         $('#check-share-link').on('click', function () {
             const share_link = $('#share-link').val();
-            $.get(`/control-link-check?link=${share_link}`)
+            $.get(`/control-link-check?link=${share_link.replace("v2","c")}`)
                 .then((data) => {
                     const state = data.state;
-
                     let message = '';
                     let alert_type = 'alert-primary';
 
