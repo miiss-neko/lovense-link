@@ -20,7 +20,7 @@
     "os": "^0.1.1",
     "path": "^0.12.7",
     "prompts": "^2.3.2",
-    "terminal-kit": "^1.35.3"
+    "terminal-kit": "^3.0.0"
   },
   "bin": {
     "lovense-link": "./lovense.js"
